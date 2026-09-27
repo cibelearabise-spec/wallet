@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nébula Wallet</title>
+<style>
+:root{
+  --bg:#08090b; --panel:#111318; --line:rgba(255,255,255,.08);
+  --txt:#f2f2f0; --txt-dim:#8b8d95; --green:#5fd9a0; --red:#ef7a7a;
+  --btc-a:#9c8a56; --btc-b:#2c2a22; --eth-a:#5c6b80; --eth-b:#1c2027;
+  --bnb-a:#4a9179; --bnb-b:#1a2b26; --ltc-a:#5b7396; --ltc-b:#1b212c;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+html,body{height:100%;margin:0;background:var(--bg);}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  color:var(--txt); display:flex; justify-content:center; min-height:100%;
+}
+.phone{
+  width:100%; max-width:420px; min-height:100vh; position:relative;
+  background:radial-gradient(120% 80% at 30% -10%, #17191d 0%, #08090b 55%);
+  overflow:hidden; display:flex; flex-direction:column;
+}
+.view{ display:none; flex-direction:column; flex:1; padding:calc(20px + env(safe-area-inset-top,0px)) 20px 100px; animation:fade .25s ease; }
+.view.active{ display:flex; }
+@keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+.topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+.icon-btn{ width:38px; height:38px; border-radius:12px; background:var(--panel); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--txt); }
+.icon-btn svg{ width:18px; height:18px; }
+.label-sm{ font-size:13px; color:var(--txt-dim); letter-spacing:.2px; }
+
+.balance-num{ font-size:38px; font-weight:600; letter-spacing:-0.5px; margin:6px 0 2px; }
+.balance-sub{ font-size:13px; color:var(--txt-dim); display:flex; align-items:center; gap:6px; }
+.pos{ color:var(--green); }
+
+.section-title{ font-size:14px; color:var(--txt-dim); margin:26px 0 12px; }
+
+/* asset cards */
+.card{
+  position:relative; overflow:hidden; isolation:isolate;
+  border-radius:20px; padding:16px 18px; margin-bottom:12px; border:1px solid rgba(255,255,255,.16);
+  display:flex; align-items:center; justify-content:space-between; cursor:pointer;
+  backdrop-filter:blur(6px); transition:transform .15s ease;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -12px 24px -12px rgba(0,0,0,.5), 0 10px 24px -10px rgba(0,0,0,.65);
+}
+.card::before{
+  content:''; position:absolute; inset:-40% -10%; z-index:0; pointer-events:none;
+  background:linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.28) 46%, rgba(255,255,255,0) 62%);
+}
+.card > *{ position:relative; z-index:1; }
+.card:active{ transform:scale(.98); }
+.card.btc{ background:linear-gradient(135deg,var(--btc-a),var(--btc-b) 75%); }
+.card.eth{ background:linear-gradient(135deg,var(--eth-a),var(--eth-b) 75%); }
+.card.bnb{ background:linear-gradient(135deg,var(--bnb-a),var(--bnb-b) 75%); }
+.card.ltc{ background:linear-gradient(135deg,var(--ltc-a),var(--ltc-b) 75%); }
+.card-left{ display:flex; align-items:center; gap:12px; }
+.coin-ic{ width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,.22); box-shadow:inset 0 1px 0 rgba(255,255,255,.4); display:flex; align-items:center; justify-content:center; font-size:15px; }
+.coin-name{ font-size:14.5px; font-weight:600; }
+.coin-sym{ font-size:11.5px; color:var(--txt-dim); }
+.card-mid{ flex:1; margin:0 10px; }
+.card-right{ text-align:right; }
+.coin-price{ font-size:14.5px; font-weight:600; }
+.coin-chg{ font-size:11px; }
+svg.spark{ width:64px; height:26px; display:block; }
+
+/* bottom nav */
+.navbar{
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:420px;
+  padding:14px 26px calc(14px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(0deg, rgba(8,9,11,.95), rgba(8,9,11,.75));
+  border-top:1px solid var(--line); display:flex; justify-content:space-between; backdrop-filter:blur(10px);
+}
+.nav-btn{ background:none; border:none; color:var(--txt-dim); display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; font-size:10px; }
+.nav-btn svg{ width:20px; height:20px; }
+.nav-btn.active{ color:var(--txt); }
+
+/* detail view */
+.detail-hero{ text-align:center; margin:10px 0 6px; }
+.detail-panel{
+  position:relative; overflow:hidden; border-radius:24px; padding:18px 10px 4px; margin-bottom:22px;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32), inset 0 -14px 26px -14px rgba(0,0,0,.55), 0 12px 28px -12px rgba(0,0,0,.65);
+}
+.detail-panel::before{
+  content:''; position:absolute; inset:-40% -10%; pointer-events:none; z-index:0;
+  background:linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.22) 46%, rgba(255,255,255,0) 62%);
+}
+.detail-panel > *{ position:relative; z-index:1; }
+.detail-panel.btc{ background:linear-gradient(165deg,var(--btc-a),var(--btc-b) 82%); }
+.detail-panel.eth{ background:linear-gradient(165deg,var(--eth-a),var(--eth-b) 82%); }
+.detail-panel.bnb{ background:linear-gradient(165deg,var(--bnb-a),var(--bnb-b) 82%); }
+.detail-panel.ltc{ background:linear-gradient(165deg,var(--ltc-a),var(--ltc-b) 82%); }
+.detail-price{ font-size:32px; font-weight:600; }
+.detail-chg{ font-size:13px; margin-top:4px; }
+.big-chart{ width:100%; height:120px; margin:10px 0 24px; }
+.actions{ display:flex; gap:10px; margin-bottom:26px; }
+.action-btn{ flex:1; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px 0; color:var(--txt);
+  display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11.5px; cursor:pointer; }
+.action-btn svg{ width:18px; height:18px; }
+.action-btn:active{ background:#191b21; }
+
+.tx-row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+.tx-left{ display:flex; align-items:center; gap:10px; }
+.tx-ic{ width:34px; height:34px; border-radius:50%; background:var(--panel); display:flex; align-items:center; justify-content:center; }
+.tx-name{ font-size:13.5px; font-weight:500; }
+.tx-date{ font-size:11px; color:var(--txt-dim); }
+.tx-amt{ font-size:13.5px; font-weight:600; }
+.tx-amt.neg{ color:var(--red); }
+.tx-amt.pos{ color:var(--green); }
+
+.toast{
+  position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:#1c1e24; border:1px solid var(--line); padding:10px 18px; border-radius:12px; font-size:12.5px;
+  transition:all .3s ease; pointer-events:none; z-index:50;
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+.form-field{ margin-bottom:14px; }
+.form-field label{ font-size:12px; color:var(--txt-dim); display:block; margin-bottom:6px; }
+.form-field input, .form-field select{
+  width:100%; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+  color:var(--txt); font-size:14px;
+}
+.primary-btn{ background:var(--txt); color:#08090b; border:none; border-radius:14px; padding:14px 0; font-size:14.5px; font-weight:600; cursor:pointer; width:100%; }
+.ghost-btn{ background:none; border:1px solid var(--line); color:var(--txt); border-radius:14px; padding:14px 0; font-size:14px; cursor:pointer; width:100%; margin-top:10px; }
+
+.profile-row{ display:flex; justify-content:space-between; align-items:center; padding:15px 0; border-bottom:1px solid var(--line); font-size:14px; }
+.avatar{ width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,#3d4552,#1c2027); display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:10px; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- HOME -->
+  <div class="view active" data-view="home">
+    <div class="topbar">
+      <div>
+        <div class="label-sm">Saldo Total</div>
+      </div>
+      <div class="icon-btn" onclick="go('profile')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+      </div>
+    </div>
+    <div class="balance-num" id="totalBalance">$3,670.20</div>
+    <div class="balance-sub"><span>$9,839.8</span><span class="pos">+3.11% ↗</span></div>
+
+    <div class="section-title">Seus ativos</div>
+    <div id="cardList"></div>
+  </div>
+
+  <!-- WALLETS (markets) -->
+  <div class="view" data-view="wallets">
+    <div class="topbar">
+      <div class="label-sm">Carteiras</div>
+      <div class="icon-btn" onclick="toast('Atualizado')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+      </div>
+    </div>
+    <div class="section-title">Todos os mercados</div>
+    <div id="cardList2"></div>
+  </div>
+
+  <!-- CARDS -->
+  <div class="view" data-view="cards">
+    <div class="topbar">
+      <div class="label-sm">Meu cartão</div>
+      <div class="icon-btn" onclick="toast('Cartão bloqueado')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/></svg>
+      </div>
+    </div>
+    <div style="border-radius:22px;padding:24px;background:linear-gradient(135deg,#2c2a22,#1a2b26);border:1px solid var(--line);margin-bottom:20px;">
+      <div class="label-sm" style="margin-bottom:30px;">Nébula Card</div>
+      <div style="font-size:17px;letter-spacing:2px;margin-bottom:16px;">•••• •••• •••• 8842</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--txt-dim);">
+        <span>VÁLIDO ATÉ 08/29</span><span>VISA</span>
+      </div>
+    </div>
+    <div class="actions">
+      <div class="action-btn" onclick="toast('Cartão congelado')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2v20M4 7l16 10M20 7L4 17"/></svg>
+        Congelar
+      </div>
+      <div class="action-btn" onclick="toast('Limite ajustado')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 12h16M12 4v16"/></svg>
+        Limite
+      </div>
+      <div class="action-btn" onclick="toast('Detalhes copiados')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="12" height="16" rx="2"/><path d="M8 2h8v4"/></svg>
+        Detalhes
+      </div>
+    </div>
+    <div class="section-title">Gastos recentes</div>
+    <div id="cardTx"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="view" data-view="profile">
+    <div class="topbar">
+      <div class="icon-btn" onclick="go('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="label-sm">Perfil</div>
+      <div style="width:38px;"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:10px;">
+      <div class="avatar">🪐</div>
+      <div style="font-size:16px;font-weight:600;">Alex Moreira</div>
+      <div class="label-sm">alex.moreira@nebula.io</div>
+    </div>
+    <div class="profile-row"><span>Verificação de segurança</span><span class="pos">Ativa</span></div>
+    <div class="profile-row"><span>Notificações</span><span>Ligadas</span></div>
+    <div class="profile-row"><span>Moeda padrão</span><span>USD</span></div>
+    <div class="profile-row"><span>Dados salvos</span><span>Neste navegador</span></div>
+    <div class="profile-row"><span>Suporte</span><span>Contactar</span></div>
+    <button class="ghost-btn" style="margin-top:20px;" onclick="toast('Sessão encerrada')">Terminar sessão</button>
+    <button class="ghost-btn" onclick="resetData()">Repor dados de teste</button>
+  </div>
+
+  <!-- DETAIL TEMPLATE (shared for each coin) -->
+  <div class="view" data-view="detail">
+    <div class="topbar">
+      <div class="icon-btn" onclick="go(lastList)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="label-sm" id="detailName">Bitcoin</div>
+      <div class="icon-btn" onclick="toast('Adicionado aos favoritos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0112 5a5.4 5.4 0 019.3 7c-2.3 4.4-9.3 9-9.3 9z"/></svg>
+      </div>
+    </div>
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-hero">
+        <div class="detail-price" id="detailPrice">$25.30</div>
+        <div class="detail-chg pos" id="detailChg">+1.68% (30D)</div>
+      </div>
+      <svg class="big-chart" id="detailChart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="actions">
+      <div class="action-btn" onclick="openForm('send')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        Enviar
+      </div>
+      <div class="action-btn" onclick="openForm('receive')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M19 12H5M11 19l-7-7 7-7"/></svg>
+        Receber
+      </div>
+      <div class="action-btn" onclick="openForm('buy')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>
+        Comprar
+      </div>
+    </div>
+    <div class="section-title">Histórico</div>
+    <div id="detailTx"></div>
+  </div>
+
+  <!-- TRANSACTION FORM -->
+  <div class="view" data-view="form">
+    <div class="topbar">
+      <div class="icon-btn" onclick="go('detail')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="label-sm" id="formTitle">Enviar</div>
+      <div style="width:38px;"></div>
+    </div>
+    <div class="form-field">
+      <label id="formLabel1">Endereço de destino</label>
+      <input id="formInput1" type="text" placeholder="0x... ou @utilizador">
+    </div>
+    <div class="form-field">
+      <label>Quantidade (USD)</label>
+      <input id="formInput2" type="number" placeholder="0.00">
+    </div>
+    <button class="primary-btn" onclick="confirmForm()" id="formSubmit">Confirmar envio</button>
+    <button class="ghost-btn" onclick="go('detail')">Cancelar</button>
+  </div>
+
+  <!-- NAV -->
+  <div class="navbar">
+    <button class="nav-btn active" data-nav="home" onclick="go('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Início
+    </button>
+    <button class="nav-btn" data-nav="wallets" onclick="go('wallets')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h.01M3 9h18"/></svg>Carteiras
+    </button>
+    <button class="nav-btn" data-nav="cards" onclick="go('cards')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/></svg>Cartão
+    </button>
+    <button class="nav-btn" data-nav="profile" onclick="go('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>Perfil
+    </button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const assets = [
+  {id:'btc', name:'Bitcoin', sym:'BTC', ic:'₿', cls:'btc', price:25.30, chg:1.68, balance:2183.10, hist:[20,22,19,24,23,26,25,27,25.3]},
+  {id:'eth', name:'Ethereum', sym:'ETH', ic:'Ξ', cls:'eth', price:13410, chg:1.68, balance:940.55, hist:[11000,11800,11500,12200,12800,12600,13100,13000,13410]},
+  {id:'bnb', name:'Binance', sym:'BNB', ic:'◆', cls:'bnb', price:9.44, chg:1.68, balance:312.40, hist:[7.5,8,7.8,8.4,8.9,8.6,9.1,9.2,9.44]},
+  {id:'ltc', name:'LTC', sym:'LTC', ic:'Ł', cls:'ltc', price:4.20, chg:1.28, balance:233.15, hist:[3.2,3.5,3.3,3.8,3.9,4.0,3.95,4.1,4.2]},
+];
+let txLog = {
+  btc:[{n:'Compra',d:'22 Set',a:'+$120.00',p:true},{n:'Envio',d:'19 Set',a:'-$45.00',p:false}],
+  eth:[{n:'Receção',d:'20 Set',a:'+$310.00',p:true}],
+  bnb:[{n:'Compra',d:'18 Set',a:'+$80.00',p:true}],
+  ltc:[{n:'Envio',d:'15 Set',a:'-$20.00',p:false}],
+};
+let currentAsset = null, lastList = 'home', formMode = 'send';
+const STORAGE_KEY = 'nebula_wallet_state_v1';
+
+function saveState(){
+  try{
+    const data = { balances: assets.map(a=>({id:a.id, balance:a.balance})), txLog };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }catch(e){ console.error('Falha ao salvar localmente:', e); }
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    (data.balances||[]).forEach(b=>{
+      const a = assets.find(x=>x.id===b.id);
+      if(a && typeof b.balance === 'number') a.balance = b.balance;
+    });
+    if(data.txLog) txLog = data.txLog;
+  }catch(e){ console.error('Falha ao carregar dados locais:', e); }
+}
+function resetData(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){ console.error(e); }
+  location.reload();
+}
+
+function fmt(n){ return n>=1000 ? n.toLocaleString('en-US',{maximumFractionDigits:2}) : n.toFixed(2); }
+
+function sparkline(hist, w, h, stroke){
+  const min = Math.min(...hist), max = Math.max(...hist), range = (max-min)||1;
+  const step = w/(hist.length-1);
+  const pts = hist.map((v,i)=> `${i*step},${h - ((v-min)/range)*h}`).join(' ');
+  return `<polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+
+function renderCard(a){
+  const chgClass = a.chg>=0 ? 'pos':'';
+  return `<div class="card ${a.cls}" onclick="openDetail('${a.id}','${lastListFor()}')">
+    <div class="card-left">
+      <div class="coin-ic">${a.ic}</div>
+      <div><div class="coin-name">${a.name}</div><div class="coin-sym">${a.sym}</div></div>
+    </div>
+    <div class="card-mid"><svg class="spark" viewBox="0 0 64 26">${sparkline(a.hist,64,26,'#ffffffaa')}</svg></div>
+    <div class="card-right">
+      <div class="coin-price">$${fmt(a.price)}</div>
+      <div class="coin-chg ${chgClass}">${a.chg>=0?'+':''}${a.chg}% (30D)</div>
+    </div>
+  </div>`;
+}
+function lastListFor(){ return document.querySelector('.view.active').dataset.view; }
+
+function renderAll(){
+  document.getElementById('cardList').innerHTML = assets.map(renderCard).join('');
+  document.getElementById('cardList2').innerHTML = assets.map(renderCard).join('');
+  document.getElementById('cardTx').innerHTML = txLog.btc.map(t=>renderTx(t)).join('');
+  const total = assets.reduce((s,a)=>s+a.balance,0);
+  document.getElementById('totalBalance').textContent = '$'+total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function renderTx(t){
+  return `<div class="tx-row"><div class="tx-left"><div class="tx-ic">${t.p?'↙':'↗'}</div><div><div class="tx-name">${t.n}</div><div class="tx-date">${t.d}</div></div></div><div class="tx-amt ${t.p?'pos':'neg'}">${t.a}</div></div>`;
+}
+
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelector(`.view[data-view="${view}"]`).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.nav===view));
+  if(['home','wallets','cards','profile'].includes(view)) lastList = view;
+  window.scrollTo(0,0);
+}
+
+function openDetail(id, from){
+  currentAsset = assets.find(a=>a.id===id);
+  lastList = from || lastList;
+  document.getElementById('detailName').textContent = currentAsset.name;
+  document.getElementById('detailPanel').className = 'detail-panel ' + currentAsset.cls;
+  document.getElementById('detailPrice').textContent = '$'+fmt(currentAsset.price);
+  const chgEl = document.getElementById('detailChg');
+  chgEl.textContent = `${currentAsset.chg>=0?'+':''}${currentAsset.chg}% (30D)`;
+  chgEl.className = 'detail-chg ' + (currentAsset.chg>=0?'pos':'');
+  document.getElementById('detailChart').innerHTML = sparkline(currentAsset.hist,320,120,'#ffffffcc');
+  document.getElementById('detailTx').innerHTML = (txLog[currentAsset.id]||[]).map(renderTx).join('') || '<div class="label-sm">Sem transações ainda.</div>';
+  go('detail');
+}
+
+function openForm(mode){
+  formMode = mode;
+  const titles = {send:'Enviar', receive:'Receber', buy:'Comprar'};
+  document.getElementById('formTitle').textContent = titles[mode] + ' ' + currentAsset.sym;
+  document.getElementById('formLabel1').textContent = mode==='receive' ? 'Seu endereço' : 'Endereço de destino';
+  document.getElementById('formInput1').value = mode==='receive' ? 'nbl_'+currentAsset.id+'_x82f1a9' : '';
+  document.getElementById('formInput1').disabled = mode==='receive';
+  document.getElementById('formInput2').value = '';
+  document.getElementById('formSubmit').textContent = 'Confirmar ' + titles[mode].toLowerCase();
+  go('form');
+}
+
+function confirmForm(){
+  const amt = parseFloat(document.getElementById('formInput2').value);
+  if(!amt || amt<=0){ toast('Insira uma quantidade válida'); return; }
+  if(formMode==='send'){
+    if(amt > currentAsset.balance){ toast('Saldo insuficiente'); return; }
+    currentAsset.balance -= amt;
+    txLog[currentAsset.id] = txLog[currentAsset.id]||[];
+    txLog[currentAsset.id].unshift({n:'Envio', d:'Agora', a:'-$'+amt.toFixed(2), p:false});
+    toast('Envio realizado com sucesso');
+  } else if(formMode==='receive'){
+    currentAsset.balance += amt;
+    txLog[currentAsset.id] = txLog[currentAsset.id]||[];
+    txLog[currentAsset.id].unshift({n:'Receção', d:'Agora', a:'+$'+amt.toFixed(2), p:true});
+    toast('Fundos recebidos');
+  } else {
+    currentAsset.balance += amt;
+    txLog[currentAsset.id] = txLog[currentAsset.id]||[];
+    txLog[currentAsset.id].unshift({n:'Compra', d:'Agora', a:'+$'+amt.toFixed(2), p:true});
+    toast('Compra concluída');
+  }
+  renderAll();
+  saveState();  openDetail(currentAsset.id, lastList);
+}
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+loadState();
+renderAll();
+</script>
+</body>
+</html>
