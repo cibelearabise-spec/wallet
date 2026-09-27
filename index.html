@@ -10,6 +10,9 @@
   --txt:#f2f2f0; --txt-dim:#8b8d95; --green:#5fd9a0; --red:#ef7a7a;
   --btc-a:#9c8a56; --btc-b:#2c2a22; --eth-a:#5c6b80; --eth-b:#1c2027;
   --bnb-a:#4a9179; --bnb-b:#1a2b26; --ltc-a:#5b7396; --ltc-b:#1b212c;
+  --rf-a:#93594c; --rf-b:#241a17; --td-a:#4a8264; --td-b:#182420;
+  --aco-a:#5f5f82; --aco-b:#1c1c26; --off-a:#3f7086; --off-b:#151f24;
+  --hold-a:#8a7148; --hold-b:#221c14;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;}
@@ -58,6 +61,11 @@ body{
 .card.eth{ background:linear-gradient(135deg,var(--eth-a),var(--eth-b) 75%); }
 .card.bnb{ background:linear-gradient(135deg,var(--bnb-a),var(--bnb-b) 75%); }
 .card.ltc{ background:linear-gradient(135deg,var(--ltc-a),var(--ltc-b) 75%); }
+.card.rf{ background:linear-gradient(135deg,var(--rf-a),var(--rf-b) 75%); }
+.card.td{ background:linear-gradient(135deg,var(--td-a),var(--td-b) 75%); }
+.card.aco{ background:linear-gradient(135deg,var(--aco-a),var(--aco-b) 75%); }
+.card.off{ background:linear-gradient(135deg,var(--off-a),var(--off-b) 75%); }
+.card.hold{ background:linear-gradient(135deg,var(--hold-a),var(--hold-b) 75%); }
 .card-left{ display:flex; align-items:center; gap:12px; }
 .coin-ic{ width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,.22); box-shadow:inset 0 1px 0 rgba(255,255,255,.4); display:flex; align-items:center; justify-content:center; font-size:15px; }
 .coin-name{ font-size:14.5px; font-weight:600; }
@@ -66,6 +74,7 @@ body{
 .card-right{ text-align:right; }
 .coin-price{ font-size:14.5px; font-weight:600; }
 .coin-chg{ font-size:11px; }
+.coin-chg.neg{ color:var(--red); }
 svg.spark{ width:64px; height:26px; display:block; }
 
 /* bottom nav */
@@ -95,6 +104,12 @@ svg.spark{ width:64px; height:26px; display:block; }
 .detail-panel.eth{ background:linear-gradient(165deg,var(--eth-a),var(--eth-b) 82%); }
 .detail-panel.bnb{ background:linear-gradient(165deg,var(--bnb-a),var(--bnb-b) 82%); }
 .detail-panel.ltc{ background:linear-gradient(165deg,var(--ltc-a),var(--ltc-b) 82%); }
+.detail-panel.rf{ background:linear-gradient(165deg,var(--rf-a),var(--rf-b) 82%); }
+.detail-panel.td{ background:linear-gradient(165deg,var(--td-a),var(--td-b) 82%); }
+.detail-panel.aco{ background:linear-gradient(165deg,var(--aco-a),var(--aco-b) 82%); }
+.detail-panel.off{ background:linear-gradient(165deg,var(--off-a),var(--off-b) 82%); }
+.detail-panel.hold{ background:linear-gradient(165deg,var(--hold-a),var(--hold-b) 82%); }
+.detail-chg.neg{ color:var(--red); }
 .detail-price{ font-size:32px; font-weight:600; }
 .detail-chg{ font-size:13px; margin-top:4px; }
 .big-chart{ width:100%; height:120px; margin:10px 0 24px; }
@@ -149,8 +164,10 @@ svg.spark{ width:64px; height:26px; display:block; }
     <div class="balance-num" id="totalBalance">$3,670.20</div>
     <div class="balance-sub"><span>$9,839.8</span><span class="pos">+3.11% ↗</span></div>
 
-    <div class="section-title">Seus ativos</div>
-    <div id="cardList"></div>
+    <div class="section-title">Criptomoedas</div>
+    <div id="cardListCrypto"></div>
+    <div class="section-title">Renda Fixa &amp; Patrimônio</div>
+    <div id="cardListInv"></div>
   </div>
 
   <!-- WALLETS (markets) -->
@@ -161,8 +178,10 @@ svg.spark{ width:64px; height:26px; display:block; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
       </div>
     </div>
-    <div class="section-title">Todos os mercados</div>
-    <div id="cardList2"></div>
+    <div class="section-title">Criptomoedas</div>
+    <div id="cardListCrypto2"></div>
+    <div class="section-title">Renda Fixa &amp; Patrimônio</div>
+    <div id="cardListInv2"></div>
   </div>
 
   <!-- CARDS -->
@@ -299,16 +318,26 @@ svg.spark{ width:64px; height:26px; display:block; }
 
 <script>
 const assets = [
-  {id:'btc', name:'Bitcoin', sym:'BTC', ic:'₿', cls:'btc', price:25.30, chg:1.68, balance:2183.10, hist:[20,22,19,24,23,26,25,27,25.3]},
-  {id:'eth', name:'Ethereum', sym:'ETH', ic:'Ξ', cls:'eth', price:13410, chg:1.68, balance:940.55, hist:[11000,11800,11500,12200,12800,12600,13100,13000,13410]},
-  {id:'bnb', name:'Binance', sym:'BNB', ic:'◆', cls:'bnb', price:9.44, chg:1.68, balance:312.40, hist:[7.5,8,7.8,8.4,8.9,8.6,9.1,9.2,9.44]},
-  {id:'ltc', name:'LTC', sym:'LTC', ic:'Ł', cls:'ltc', price:4.20, chg:1.28, balance:233.15, hist:[3.2,3.5,3.3,3.8,3.9,4.0,3.95,4.1,4.2]},
+  {id:'btc', name:'Bitcoin', sym:'BTC', ic:'₿', cls:'btc', category:'cripto', price:25.30, chg:1.68, balance:2183.10, hist:[20,22,19,24,23,26,25,27,25.3]},
+  {id:'eth', name:'Ethereum', sym:'ETH', ic:'Ξ', cls:'eth', category:'cripto', price:13410, chg:1.68, balance:940.55, hist:[11000,11800,11500,12200,12800,12600,13100,13000,13410]},
+  {id:'bnb', name:'Binance', sym:'BNB', ic:'◆', cls:'bnb', category:'cripto', price:9.44, chg:1.68, balance:312.40, hist:[7.5,8,7.8,8.4,8.9,8.6,9.1,9.2,9.44]},
+  {id:'ltc', name:'LTC', sym:'LTC', ic:'Ł', cls:'ltc', category:'cripto', price:4.20, chg:1.28, balance:233.15, hist:[3.2,3.5,3.3,3.8,3.9,4.0,3.95,4.1,4.2]},
+  {id:'rf', name:'Renda Fixa', sym:'RF', ic:'%', cls:'rf', category:'investimentos', price:45230.00, chg:0.85, balance:45230.00, hist:[42000,42500,43000,43400,43900,44300,44700,44950,45230]},
+  {id:'td', name:'Tesouro Direto', sym:'TD', ic:'T', cls:'td', category:'investimentos', price:62000.00, chg:0.34, balance:62000.00, hist:[58000,58800,59500,60100,60700,61200,61600,61850,62000]},
+  {id:'aco', name:'Ações', sym:'AÇÕES', ic:'▲', cls:'aco', category:'investimentos', price:28950.00, chg:-1.12, balance:28950.00, hist:[31200,30800,30500,30100,29700,29400,29100,29000,28950]},
+  {id:'off', name:'Empresas Offshore', sym:'OFFSHORE', ic:'◈', cls:'off', category:'investimentos', price:154000.00, chg:2.05, balance:154000.00, hist:[145000,147000,148500,150000,151200,152300,153100,153600,154000]},
+  {id:'hold', name:'Holdings Patrimoniais', sym:'HOLDING', ic:'H', cls:'hold', category:'investimentos', price:310000.00, chg:0.58, balance:310000.00, hist:[300000,302500,304800,306700,307900,308800,309400,309800,310000]},
 ];
 let txLog = {
   btc:[{n:'Compra',d:'22 Set',a:'+$120.00',p:true},{n:'Envio',d:'19 Set',a:'-$45.00',p:false}],
   eth:[{n:'Receção',d:'20 Set',a:'+$310.00',p:true}],
   bnb:[{n:'Compra',d:'18 Set',a:'+$80.00',p:true}],
   ltc:[{n:'Envio',d:'15 Set',a:'-$20.00',p:false}],
+  rf:[{n:'Aporte',d:'21 Set',a:'+$2,000.00',p:true}],
+  td:[{n:'Aporte',d:'17 Set',a:'+$3,500.00',p:true}],
+  aco:[{n:'Venda',d:'23 Set',a:'-$1,200.00',p:false}],
+  off:[{n:'Transferência recebida',d:'12 Set',a:'+$8,000.00',p:true}],
+  hold:[{n:'Distribuição',d:'10 Set',a:'+$4,500.00',p:true}],
 };
 let currentAsset = null, lastList = 'home', formMode = 'send';
 const STORAGE_KEY = 'nebula_wallet_state_v1';
@@ -346,7 +375,7 @@ function sparkline(hist, w, h, stroke){
 }
 
 function renderCard(a){
-  const chgClass = a.chg>=0 ? 'pos':'';
+  const chgClass = a.chg>=0 ? 'pos':'neg';
   return `<div class="card ${a.cls}" onclick="openDetail('${a.id}','${lastListFor()}')">
     <div class="card-left">
       <div class="coin-ic">${a.ic}</div>
@@ -362,8 +391,12 @@ function renderCard(a){
 function lastListFor(){ return document.querySelector('.view.active').dataset.view; }
 
 function renderAll(){
-  document.getElementById('cardList').innerHTML = assets.map(renderCard).join('');
-  document.getElementById('cardList2').innerHTML = assets.map(renderCard).join('');
+  const crypto = assets.filter(a=>a.category==='cripto');
+  const inv = assets.filter(a=>a.category==='investimentos');
+  document.getElementById('cardListCrypto').innerHTML = crypto.map(renderCard).join('');
+  document.getElementById('cardListInv').innerHTML = inv.map(renderCard).join('');
+  document.getElementById('cardListCrypto2').innerHTML = crypto.map(renderCard).join('');
+  document.getElementById('cardListInv2').innerHTML = inv.map(renderCard).join('');
   document.getElementById('cardTx').innerHTML = txLog.btc.map(t=>renderTx(t)).join('');
   const total = assets.reduce((s,a)=>s+a.balance,0);
   document.getElementById('totalBalance').textContent = '$'+total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -388,7 +421,7 @@ function openDetail(id, from){
   document.getElementById('detailPrice').textContent = '$'+fmt(currentAsset.price);
   const chgEl = document.getElementById('detailChg');
   chgEl.textContent = `${currentAsset.chg>=0?'+':''}${currentAsset.chg}% (30D)`;
-  chgEl.className = 'detail-chg ' + (currentAsset.chg>=0?'pos':'');
+  chgEl.className = 'detail-chg ' + (currentAsset.chg>=0?'pos':'neg');
   document.getElementById('detailChart').innerHTML = sparkline(currentAsset.hist,320,120,'#ffffffcc');
   document.getElementById('detailTx').innerHTML = (txLog[currentAsset.id]||[]).map(renderTx).join('') || '<div class="label-sm">Sem transações ainda.</div>';
   go('detail');
